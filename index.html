@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MSB Featured Events</title>
+<title>BYU Marriott Events</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap">
 
@@ -74,7 +74,7 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Filter bars ── */
+/* ── Filter bar ── */
 .filter-bar {
   position: sticky;
   top: 0;
@@ -105,6 +105,19 @@ body {
   scrollbar-width: none;
 }
 .filter-bar-inner::-webkit-scrollbar { display: none; }
+
+/* Sub-row for centers/programs drill-down */
+.sub-filter-section {
+  border-top: 1px dashed var(--border);
+  background: var(--bg);
+  display: none;
+}
+.sub-filter-section.visible { display: block; }
+.sub-filter-section .filter-bar-inner {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 .filter-btn {
   padding: 5px 12px;
   border-radius: 20px;
@@ -134,6 +147,16 @@ body {
 .filter-btn.mba-btn.active {
   background: #0055a5;
   border-color: #0055a5;
+  color: #fff;
+}
+/* Sub-buttons (individual centers/programs) */
+.filter-btn.sub {
+  font-size: 11px;
+  padding: 3px 10px;
+}
+.filter-btn.sub.active {
+  background: var(--stripe);
+  border-color: var(--stripe);
   color: #fff;
 }
 .filter-btn .dot {
@@ -194,7 +217,7 @@ body {
   border-radius: 10px;
   margin-bottom: 8px;
   box-shadow: var(--shadow);
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow 0.15s;
 }
 .event-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.12); }
 .event-card.hidden { display: none; }
@@ -237,13 +260,12 @@ body {
   letter-spacing: 0.03em;
 }
 .cal-source-tag {
-  background: var(--cal-color, var(--stripe));
-  color: #fff;
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
+  color: #fff;
   opacity: 0.9;
 }
 .flyer-btn {
@@ -263,7 +285,7 @@ body {
 }
 .flyer-btn:hover { opacity: 0.85; }
 
-/* ── Loading / error / empty states ── */
+/* ── States ── */
 .state-msg {
   text-align: center;
   padding: 64px 20px;
@@ -272,6 +294,7 @@ body {
 .state-msg .icon { font-size: 36px; margin-bottom: 12px; }
 .state-msg h3 { margin: 0 0 6px; font-size: 16px; color: var(--fg); }
 .state-msg p { margin: 0; font-size: 13px; line-height: 1.6; }
+.state-msg a { color: var(--accent); }
 .spinner {
   width: 32px; height: 32px;
   border: 3px solid var(--border);
@@ -281,11 +304,7 @@ body {
   margin: 0 auto 16px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.load-progress {
-  font-size: 12px;
-  color: var(--fg-muted);
-  margin-top: 8px;
-}
+.load-progress { font-size: 12px; color: var(--fg-muted); margin-top: 8px; }
 
 /* ── Footer ── */
 .footer {
@@ -304,23 +323,28 @@ body {
 <div class="site-header">
   <div class="header-text">
     <h1>BYU Marriott Events</h1>
-    <p>BYU Marriott School of Business · MBA &amp; more</p>
+    <p>BYU Marriott School of Business · Live from Google Calendar</p>
   </div>
   <div class="header-badge" id="eventCount">—</div>
 </div>
 
 <div class="filter-bar">
-  <!-- Row 1: Calendar source filter -->
+  <!-- Row 1: Calendar -->
   <div class="filter-section">
     <div class="filter-label">Calendar</div>
     <div class="filter-bar-inner" id="calFilterRow">
-      <button class="filter-btn active" data-cal="all">
-        All Calendars
-      </button>
       <!-- Populated by JS -->
     </div>
+    <!-- Sub-row: Centers drill-down -->
+    <div class="sub-filter-section" id="centersSubRow">
+      <div class="filter-bar-inner" id="centersSubBtns"></div>
+    </div>
+    <!-- Sub-row: Programs drill-down -->
+    <div class="sub-filter-section" id="programsSubRow">
+      <div class="filter-bar-inner" id="programsSubBtns"></div>
+    </div>
   </div>
-  <!-- Row 2: Event type filter -->
+  <!-- Row 2: Event type -->
   <div class="filter-section">
     <div class="filter-label">Event type</div>
     <div class="filter-bar-inner">
@@ -343,79 +367,97 @@ body {
     <div class="load-progress" id="loadProgress"></div>
   </div>
 </div>
+
 <div class="footer">
   Events from <a href="https://marriott.byu.edu/calendar/" target="_blank" rel="noopener">marriott.byu.edu/calendar</a> · Updated <span id="refreshDate"></span>
 </div>
 
 <script>
 // ── Calendar registry ─────────────────────────────────────────────────────────
-// All calendars use {slug}@marriottschool.net
 const CALENDARS = [
-  // MBA first — highest priority
-  { id: 'mba@marriottschool.net',      label: 'MBA',            group: 'programs',  color: '#0055a5', priority: true },
-  // BYU Marriott
-  { id: 'events@marriottschool.net',   label: 'MSB Featured',   group: 'byu',       color: '#002e5d' },
-  // calendar@marriottschool.net appears empty — omitted
-  { id: 'soa@marriottschool.net',      label: 'Accountancy',    group: 'byu',       color: '#1a4f8a' },
-  // Other programs (fetched but not individually highlighted)
-  { id: 'emba@marriottschool.net',     label: 'EMBA',           group: 'programs',  color: '#2e75b6' },
-  { id: 'empa@marriottschool.net',     label: 'EMPA',           group: 'programs',  color: '#2e75b6' },
-  { id: 'macc@marriottschool.net',     label: 'MAcc',           group: 'programs',  color: '#2e75b6' },
-  { id: 'mism@marriottschool.net',     label: 'MISM',           group: 'programs',  color: '#2e75b6' },
-  { id: 'mpa@marriottschool.net',      label: 'MPA',            group: 'programs',  color: '#2e75b6' },
+  // BYU Marriott group
+  { id: 'events@marriottschool.net',   label: 'MSB Featured Events', group: 'byu',      color: '#002e5d' },
+  { id: 'calendar@marriottschool.net', label: 'BYU Marriott',        group: 'byu',      color: '#1a4f8a' },
+  { id: 'soa@marriottschool.net',      label: 'School of Accountancy',group: 'byu',      color: '#1a4f8a' },
+  // MBA — priority / default view
+  { id: 'mba@marriottschool.net',      label: 'MBA',                 group: 'programs', color: '#0055a5' },
+  // Other programs
+  { id: 'emba@marriottschool.net',     label: 'EMBA',                group: 'programs', color: '#2e75b6' },
+  { id: 'empa@marriottschool.net',     label: 'EMPA',                group: 'programs', color: '#2e75b6' },
+  { id: 'macc@marriottschool.net',     label: 'MAcc',                group: 'programs', color: '#2e75b6' },
+  { id: 'mism@marriottschool.net',     label: 'MISM',                group: 'programs', color: '#2e75b6' },
+  { id: 'mpa@marriottschool.net',      label: 'MPA',                 group: 'programs', color: '#2e75b6' },
+  { id: 'msrmyl@marriottschool.net',   label: 'MS RMYL',             group: 'programs', color: '#2e75b6' },
   // Centers & Institutes
-  { id: 'cet@marriottschool.net',      label: 'Entrepreneurship', group: 'centers', color: '#70ad47' },
-  { id: 'bcc@marriottschool.net',      label: 'Career Center',  group: 'centers',   color: '#ed7d31' },
-  { id: 'gmc@marriottschool.net',      label: 'Global Business',group: 'centers',   color: '#70ad47' },
-  { id: 'esr@marriottschool.net',      label: 'Ballard Center', group: 'centers',   color: '#70ad47' },
+  { id: 'bcc@marriottschool.net',      label: 'Business Career Center',          group: 'centers', color: '#ed7d31' },
+  { id: 'cet@marriottschool.net',      label: 'Entrepreneurship & Technology',   group: 'centers', color: '#70ad47' },
+  { id: 'gmc@marriottschool.net',      label: 'Global Business Center',          group: 'centers', color: '#4472c4' },
+  { id: 'esr@marriottschool.net',      label: 'Ballard Center',                  group: 'centers', color: '#9e480e' },
 ];
 
-const GROUPS = [
-  { key: 'mba@marriottschool.net', label: '★ MBA',        mba: true },
-  { key: 'all',                    label: 'All'                      },
-  { key: 'byu',                    label: 'BYU Marriott'             },
-  { key: 'centers',                label: 'Centers'                  },
-  { key: 'programs',               label: 'Programs'                 },
+// Top-level calendar filter buttons (mirroring marriott.byu.edu structure)
+// 'all-byu' = All BYU Marriott (all groups combined)
+const TOP_FILTERS = [
+  { key: 'mba@marriottschool.net',   label: '★ MBA',              mba: true },
+  { key: 'all-byu',                  label: 'All BYU Marriott'              },
+  { key: 'byu',                      label: 'BYU Marriott'                  },
+  { key: 'events@marriottschool.net',label: 'MSB Featured Events'           },
+  { key: 'centers',                  label: 'Centers & Institutes'          },
+  { key: 'programs',                 label: 'Programs'                      },
 ];
 
 const API_KEY = 'AIzaSyBn-Dpf-QwoRD0sk3s8lM-L5pTtyNxGenY';
 
-// Build a lookup map by id
 const CAL_META = {};
 CALENDARS.forEach(c => { CAL_META[c.id] = c; });
 
-let currentFilter = 'all';
-let currentCal    = 'mba@marriottschool.net';  // default to MBA view
-let allEvents     = [];
+const byGroup = {
+  byu:      CALENDARS.filter(c => c.group === 'byu').map(c => c.id),
+  programs: CALENDARS.filter(c => c.group === 'programs').map(c => c.id),
+  centers:  CALENDARS.filter(c => c.group === 'centers').map(c => c.id),
+};
+
+let currentFilter  = 'all';
+let currentCal     = 'mba@marriottschool.net';   // default: MBA
+let currentSubCal  = null;                        // sub-filter within centers/programs
+let allEvents      = [];
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 function fmt12(dtStr) {
   if (!dtStr) return '';
-  const d = new Date(dtStr);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Denver' });
+  return new Date(dtStr).toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Denver'
+  });
 }
 function fmtDate(dtStr) {
   if (!dtStr) return '';
-  const d = new Date(dtStr);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Denver' });
+  return new Date(dtStr).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Denver'
+  });
 }
-function isAllDay(ev) { return !!(ev.start && ev.start.date && !ev.start.dateTime); }
+function isAllDay(ev) { return !!(ev.start?.date && !ev.start?.dateTime); }
 function startStr(ev) { return ev.start.dateTime || (ev.start.date + 'T00:00:00'); }
 function startMs(ev)  { return new Date(startStr(ev)).getTime(); }
+
+function isToday(dateStr) {
+  return dateStr === new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Denver'
+  });
+}
 
 function categorize(title) {
   const t = (title || '').toLowerCase();
   const tags = [];
-  if (t.includes('info session'))                                     tags.push({ label: 'Info Session',  filter: 'info' });
-  if (t.includes('panel'))                                            tags.push({ label: 'Panel',         filter: 'panel' });
-  if (t.includes('networking') || t.includes('speed networking'))     tags.push({ label: 'Networking',    filter: 'networking' });
-  if (t.includes('keynote') || t.includes('lecture'))                 tags.push({ label: 'Keynote',       filter: 'keynote' });
-  if (t.includes('dinner') || t.includes('lunch'))                    tags.push({ label: 'Meal',          filter: 'panel' });
-  if (t.includes('career fair'))                                      tags.push({ label: 'Career Fair',   filter: 'networking' });
-  if (t.includes('office hours'))                                     tags.push({ label: 'Office Hours',  filter: 'networking' });
-  if (t.includes('competition') || t.includes('challenge'))           tags.push({ label: 'Competition',   filter: 'keynote' });
-  if (t.includes('workshop') || t.includes('training'))               tags.push({ label: 'Workshop',      filter: 'info' });
+  if (t.includes('info session'))                               tags.push({ label: 'Info Session', filter: 'info' });
+  if (t.includes('panel'))                                      tags.push({ label: 'Panel',        filter: 'panel' });
+  if (t.includes('networking') || t.includes('speed network'))  tags.push({ label: 'Networking',   filter: 'networking' });
+  if (t.includes('keynote') || t.includes('lecture'))           tags.push({ label: 'Keynote',      filter: 'keynote' });
+  if (t.includes('dinner') || t.includes('lunch'))              tags.push({ label: 'Meal',         filter: 'panel' });
+  if (t.includes('career fair'))                                tags.push({ label: 'Career Fair',  filter: 'networking' });
+  if (t.includes('office hours'))                               tags.push({ label: 'Office Hours', filter: 'networking' });
+  if (t.includes('competition') || t.includes('challenge'))     tags.push({ label: 'Competition',  filter: 'keynote' });
+  if (t.includes('workshop') || t.includes('training'))         tags.push({ label: 'Workshop',     filter: 'info' });
   return tags;
 }
 
@@ -423,47 +465,32 @@ function driveViewUrl(att) {
   if (!att) return null;
   const url = att.fileUrl || '';
   if (url.includes('/file/d/')) return url;
-  const match = url.match(/[?&]id=([^&]+)/);
-  if (match) return `https://drive.google.com/file/d/${match[1]}/view`;
-  const idField = att.fileId;
-  if (idField) return `https://drive.google.com/file/d/${idField}/view`;
+  const m = url.match(/[?&]id=([^&]+)/);
+  if (m) return `https://drive.google.com/file/d/${m[1]}/view`;
+  if (att.fileId) return `https://drive.google.com/file/d/${att.fileId}/view`;
   return url || null;
 }
 
-function isToday(dateStr) {
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Denver'
-  });
-  return dateStr === today;
-}
-
-// ── Fetch (with pagination) ───────────────────────────────────────────────────
+// ── Fetch (with full pagination) ──────────────────────────────────────────────
 
 async function fetchCalendar(calId) {
-  const now      = new Date().toISOString();
+  const now       = new Date().toISOString();
   const twoMonths = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
-  const calIdEnc  = encodeURIComponent(calId);
-  let items       = [];
-  let pageToken   = null;
+  const enc       = encodeURIComponent(calId);
+  let items = [], pageToken = null;
 
   do {
     const params = new URLSearchParams({
-      key: API_KEY,
-      timeMin: now,
-      timeMax: twoMonths,
-      maxResults: '250',        // max allowed per page
-      singleEvents: 'true',
-      orderBy: 'startTime',
+      key: API_KEY, timeMin: now, timeMax: twoMonths,
+      maxResults: '250', singleEvents: 'true', orderBy: 'startTime',
       supportsAttachments: 'true',
-      fields: 'nextPageToken,items(id,summary,start,end,location,description,attachments)',
+      fields: 'nextPageToken,items(id,summary,start,end,location,attachments)',
     });
     if (pageToken) params.set('pageToken', pageToken);
 
-    const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calIdEnc}/events?${params}`);
+    const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?${params}`);
     const data = await resp.json();
-    if (data.error) throw new Error(`[${calId}] ${data.error.message || 'API error'}`);
-
-    // Tag each event with its source calendar
+    if (data.error) throw new Error(`[${calId}] ${data.error.message}`);
     (data.items || []).forEach(ev => { ev._calId = calId; });
     items = items.concat(data.items || []);
     pageToken = data.nextPageToken || null;
@@ -486,76 +513,124 @@ async function fetchAll() {
   );
 
   const events = [];
-  results.forEach(r => {
-    if (r.status === 'fulfilled') events.push(...r.value);
+  results.forEach(r => { if (r.status === 'fulfilled') events.push(...r.value); });
+
+  // Deduplicate: if same event ID appears in multiple cals, keep the one from
+  // the highest-priority calendar (order in CALENDARS array = priority)
+  const seen = new Map(); // id → event
+  events.forEach(ev => {
+    if (!seen.has(ev.id)) seen.set(ev.id, ev);
   });
 
-  // Deduplicate by event id (same event may appear in multiple calendars)
-  const seen = new Set();
-  const unique = events.filter(ev => {
-    if (seen.has(ev.id)) return false;
-    seen.add(ev.id);
-    return true;
-  });
-
-  // Sort by start time
+  const unique = [...seen.values()];
   unique.sort((a, b) => startMs(a) - startMs(b));
   return unique;
 }
 
-// ── Calendar filter buttons ───────────────────────────────────────────────────
+// ── Filter logic ──────────────────────────────────────────────────────────────
+
+function applyCalFilter(events, calFilter, subCal) {
+  return events.filter(ev => {
+    if (calFilter === 'all-byu')  return true;                               // everything
+    if (calFilter === 'byu')      return byGroup.byu.includes(ev._calId);    // BYU Marriott group only
+    if (calFilter === 'centers')  return subCal
+      ? ev._calId === subCal
+      : byGroup.centers.includes(ev._calId);
+    if (calFilter === 'programs') return subCal
+      ? ev._calId === subCal
+      : byGroup.programs.includes(ev._calId);
+    // Direct calendar ID (MBA, MSB Featured, or any individual cal)
+    return ev._calId === calFilter;
+  });
+}
+
+// ── Build filter UI ───────────────────────────────────────────────────────────
 
 function buildCalFilters() {
+  // Top-level buttons
   const row = document.getElementById('calFilterRow');
   row.innerHTML = '';
-
-  GROUPS.forEach(g => {
+  TOP_FILTERS.forEach(f => {
     const btn = document.createElement('button');
-    btn.className = 'filter-btn' + (g.key === currentCal ? ' active' : '') + (g.mba ? ' mba-btn' : '');
-    btn.dataset.cal = g.key;
-    btn.textContent = g.label;
+    btn.className = 'filter-btn' + (f.key === currentCal ? ' active' : '') + (f.mba ? ' mba-btn' : '');
+    btn.dataset.cal = f.key;
+    btn.textContent = f.label;
+    btn.addEventListener('click', () => onCalClick(f.key));
     row.appendChild(btn);
   });
 
-  row.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      row.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentCal = btn.dataset.cal;
-      render(allEvents, currentFilter, currentCal);
-    });
+  // Centers sub-buttons
+  const centersRow = document.getElementById('centersSubBtns');
+  centersRow.innerHTML = '';
+  // "All Centers" first
+  const allCentersBtn = document.createElement('button');
+  allCentersBtn.className = 'filter-btn sub' + (!currentSubCal && currentCal === 'centers' ? ' active' : '');
+  allCentersBtn.textContent = 'All Centers';
+  allCentersBtn.addEventListener('click', () => onSubCalClick(null));
+  centersRow.appendChild(allCentersBtn);
+
+  CALENDARS.filter(c => c.group === 'centers').forEach(cal => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn sub' + (currentSubCal === cal.id ? ' active' : '');
+    btn.innerHTML = `<span class="dot" style="background:${cal.color}"></span>${cal.label}`;
+    btn.addEventListener('click', () => onSubCalClick(cal.id));
+    centersRow.appendChild(btn);
   });
+
+  // Programs sub-buttons (MBA excluded — it has its own top-level button)
+  const programsRow = document.getElementById('programsSubBtns');
+  programsRow.innerHTML = '';
+  const allProgsBtn = document.createElement('button');
+  allProgsBtn.className = 'filter-btn sub' + (!currentSubCal && currentCal === 'programs' ? ' active' : '');
+  allProgsBtn.textContent = 'All Programs';
+  allProgsBtn.addEventListener('click', () => onSubCalClick(null));
+  programsRow.appendChild(allProgsBtn);
+
+  CALENDARS.filter(c => c.group === 'programs' && c.id !== 'mba@marriottschool.net').forEach(cal => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn sub' + (currentSubCal === cal.id ? ' active' : '');
+    btn.innerHTML = `<span class="dot" style="background:${cal.color}"></span>${cal.label}`;
+    btn.addEventListener('click', () => onSubCalClick(cal.id));
+    programsRow.appendChild(btn);
+  });
+
+  // Show/hide sub-rows
+  document.getElementById('centersSubRow').classList.toggle('visible', currentCal === 'centers');
+  document.getElementById('programsSubRow').classList.toggle('visible', currentCal === 'programs');
+}
+
+function onCalClick(key) {
+  currentCal    = key;
+  currentSubCal = null;  // reset sub-filter when top-level changes
+  buildCalFilters();
+  render(allEvents, currentFilter, currentCal, currentSubCal);
+}
+
+function onSubCalClick(calId) {
+  currentSubCal = calId;
+  buildCalFilters();
+  render(allEvents, currentFilter, currentCal, currentSubCal);
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
-function render(events, typeFilter, calFilter) {
+function render(events, typeFilter, calFilter, subCal) {
   const root  = document.getElementById('eventsRoot');
   const state = document.getElementById('stateMsg');
   root.innerHTML = '';
   state.style.display = 'none';
 
-  // Apply calendar filter
-  const byGroup = {
-    byu:      CALENDARS.filter(c => c.group === 'byu').map(c => c.id),
-    programs: CALENDARS.filter(c => c.group === 'programs').map(c => c.id),
-    centers:  CALENDARS.filter(c => c.group === 'centers').map(c => c.id),
-  };
-
-  const filtered = events.filter(ev => {
-    if (calFilter === 'all')      return true;
-    if (calFilter === 'byu')      return byGroup.byu.includes(ev._calId);
-    if (calFilter === 'programs') return byGroup.programs.includes(ev._calId);
-    if (calFilter === 'centers')  return byGroup.centers.includes(ev._calId);
-    // Direct calendar ID match (e.g. MBA shortcut or individual cal button)
-    return ev._calId === calFilter;
-  });
+  const filtered = applyCalFilter(events, calFilter, subCal);
 
   if (!filtered.length) {
-    state.innerHTML = `<div class="icon">📅</div><h3>No upcoming events</h3><p>Check back soon — or try a different calendar or filter.</p>`;
+    state.innerHTML = `
+      <div class="icon">📅</div>
+      <h3>No upcoming events</h3>
+      <p>Nothing scheduled for this calendar in the next 60 days.<br>
+         Check the full calendar at <a href="https://marriott.byu.edu/calendar/" target="_blank" rel="noopener">marriott.byu.edu/calendar</a>.</p>`;
     state.style.display = 'block';
     document.getElementById('filterCount').textContent = '0 events';
-    document.getElementById('eventCount').textContent = '0 Events';
+    document.getElementById('eventCount').textContent = `${allEvents.length} Events`;
     return;
   }
 
@@ -569,76 +644,68 @@ function render(events, typeFilter, calFilter) {
 
   let shown = 0;
   Object.entries(groups).forEach(([date, evs]) => {
-    const groupEl = document.createElement('div');
+    const groupEl   = document.createElement('div');
     groupEl.className = 'date-group';
-
-    const dateMatch = date.match(/^(\w+),\s+(\w+ \d+)/);
-    const weekday   = dateMatch ? dateMatch[1] : date;
-    const datePart  = dateMatch ? dateMatch[2] : '';
-    const todayFlag = isToday(date);
+    const m         = date.match(/^(\w+),\s+(\w+ \d+)/);
+    const weekday   = m ? m[1] : date;
+    const datePart  = m ? m[2] : '';
 
     groupEl.innerHTML = `<div class="date-header">
       <span class="weekday">${weekday}</span>
       <span class="date-full">${datePart}</span>
-      ${todayFlag ? '<span class="today-pill">Today</span>' : ''}
+      ${isToday(date) ? '<span class="today-pill">Today</span>' : ''}
     </div>`;
 
-    let groupHasVisible = false;
+    let groupVisible = false;
     evs.forEach(ev => {
       const tags    = categorize(ev.summary || '');
       const matches = typeFilter === 'all' || tags.some(t => t.filter === typeFilter);
 
       const card = document.createElement('div');
       card.className = 'event-card' + (matches ? '' : ' hidden');
-      if (matches) { shown++; groupHasVisible = true; }
+      if (matches) { shown++; groupVisible = true; }
 
-      // Calendar color accent
       const calMeta = CAL_META[ev._calId];
       if (calMeta) card.style.setProperty('--cal-color', calMeta.color);
 
-      const allDay  = isAllDay(ev);
-      const timeHtml = allDay
+      const timeHtml = isAllDay(ev)
         ? `<div class="event-time">All Day</div>`
         : `<div class="event-time">${fmt12(ev.start.dateTime)}<span class="end-time">${fmt12(ev.end.dateTime)}</span></div>`;
 
-      const locHtml = ev.location ? `<div class="event-location">
-        <svg width="11" height="14" viewBox="0 0 11 14" fill="none"><path d="M5.5 0C2.46 0 0 2.46 0 5.5c0 3.85 5.5 8.5 5.5 8.5S11 9.35 11 5.5C11 2.46 8.54 0 5.5 0zm0 7.5a2 2 0 110-4 2 2 0 010 4z" fill="currentColor"/></svg>
-        ${ev.location}
-      </div>` : '';
+      const locHtml = ev.location
+        ? `<div class="event-location">
+            <svg width="11" height="14" viewBox="0 0 11 14" fill="none"><path d="M5.5 0C2.46 0 0 2.46 0 5.5c0 3.85 5.5 8.5 5.5 8.5S11 9.35 11 5.5C11 2.46 8.54 0 5.5 0zm0 7.5a2 2 0 110-4 2 2 0 010 4z" fill="currentColor"/></svg>
+            ${ev.location}
+           </div>` : '';
 
-      const tagsHtml      = tags.map(t => `<span class="tag">${t.label}</span>`).join('');
-      const calSourceHtml = calMeta ? `<span class="cal-source-tag" style="background:${calMeta.color}">${calMeta.label}</span>` : '';
+      const tagsHtml   = tags.map(t => `<span class="tag">${t.label}</span>`).join('');
+      const sourceHtml = calMeta
+        ? `<span class="cal-source-tag" style="background:${calMeta.color}">${calMeta.label}</span>`
+        : '';
 
-      const att      = ev.attachments && ev.attachments[0];
-      const flyerUrl = att ? driveViewUrl(att) : null;
-      const flyerHtml = flyerUrl ? `<a class="flyer-btn" href="${flyerUrl}" target="_blank" rel="noopener">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v6M3.5 4.5L6 7l2.5-2.5M1.5 9h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        View Flyer
-      </a>` : '';
+      const att       = ev.attachments?.[0];
+      const flyerUrl  = driveViewUrl(att);
+      const flyerHtml = flyerUrl
+        ? `<a class="flyer-btn" href="${flyerUrl}" target="_blank" rel="noopener">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v6M3.5 4.5L6 7l2.5-2.5M1.5 9h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            View Flyer
+           </a>` : '';
 
       card.innerHTML = `
         ${timeHtml}
         <div class="event-body">
           <div class="event-title">${ev.summary || 'Untitled'}</div>
           ${locHtml}
-          <div class="event-tags">${calSourceHtml}${tagsHtml}${flyerHtml}</div>
+          <div class="event-tags">${sourceHtml}${tagsHtml}${flyerHtml}</div>
         </div>`;
       groupEl.appendChild(card);
     });
 
-    if (groupHasVisible) root.appendChild(groupEl);
+    if (groupVisible) root.appendChild(groupEl);
   });
 
-  const totalShown   = filtered.filter((_, i) => {
-    // recount visible after type filter
-    const tags = categorize(filtered[i]?.summary || '');
-    return typeFilter === 'all' || tags.some(t => t.filter === typeFilter);
-  }).length;
-
   document.getElementById('filterCount').textContent =
-    shown === filtered.length
-      ? `${shown} events`
-      : `${shown} of ${filtered.length} events`;
+    shown === filtered.length ? `${shown} events` : `${shown} of ${filtered.length} events`;
   document.getElementById('eventCount').textContent = `${allEvents.length} Events`;
 }
 
@@ -648,7 +715,7 @@ document.querySelectorAll('[data-filter]').forEach(btn => {
     document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
-    render(allEvents, currentFilter, currentCal);
+    render(allEvents, currentFilter, currentCal, currentSubCal);
   });
 });
 
@@ -661,7 +728,7 @@ buildCalFilters();
     document.getElementById('refreshDate').textContent = new Date().toLocaleDateString('en-US', {
       month: 'long', day: 'numeric', year: 'numeric'
     });
-    render(allEvents, currentFilter, currentCal);
+    render(allEvents, currentFilter, currentCal, currentSubCal);
   } catch (err) {
     document.getElementById('stateMsg').innerHTML =
       `<div class="icon">⚠️</div><h3>Couldn't load events</h3><p>${err.message || 'Unknown error.'}</p>`;
