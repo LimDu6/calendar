@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MSB Featured Events</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap">
@@ -69,8 +74,7 @@ body {
   flex-shrink: 0;
 }
 
-
-/* ── Filter bar ── */
+/* ── Filter bars ── */
 .filter-bar {
   position: sticky;
   top: 0;
@@ -79,33 +83,63 @@ body {
   border-bottom: 1px solid var(--border);
   box-shadow: 0 1px 6px rgba(0,0,0,0.05);
 }
+.filter-section {
+  border-bottom: 1px solid var(--border);
+}
+.filter-section:last-child { border-bottom: none; }
+.filter-label {
+  padding: 6px max(16px, env(safe-area-inset-left, 0px)) 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
 .filter-bar-inner {
   display: flex;
   align-items: center;
   gap: 6px;
   overflow-x: auto;
-  padding: 10px max(16px, env(safe-area-inset-left, 0px));
+  padding: 8px max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   scrollbar-width: none;
 }
 .filter-bar-inner::-webkit-scrollbar { display: none; }
 .filter-btn {
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 20px;
   border: 1.5px solid var(--border);
   background: transparent;
   color: var(--fg-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s;
   font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 .filter-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+.filter-btn.mba-btn {
+  border-color: #0055a5;
+  color: #0055a5;
+  font-weight: 600;
+}
+.filter-btn.mba-btn.active {
+  background: #0055a5;
+  border-color: #0055a5;
+  color: #fff;
+}
+.filter-btn .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .filter-count {
   margin-left: auto;
@@ -156,12 +190,13 @@ body {
   padding: 14px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
+  border-left: 4px solid var(--cal-color, var(--stripe));
   border-radius: 10px;
   margin-bottom: 8px;
   box-shadow: var(--shadow);
   transition: box-shadow 0.15s, border-color 0.15s;
 }
-.event-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.12); border-color: var(--stripe); }
+.event-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.12); }
 .event-card.hidden { display: none; }
 .event-time {
   font-variant-numeric: tabular-nums;
@@ -201,6 +236,16 @@ body {
   font-weight: 500;
   letter-spacing: 0.03em;
 }
+.cal-source-tag {
+  background: var(--cal-color, var(--stripe));
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
 .flyer-btn {
   display: inline-flex;
   align-items: center;
@@ -236,6 +281,11 @@ body {
   margin: 0 auto 16px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.load-progress {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 8px;
+}
 
 /* ── Footer ── */
 .footer {
@@ -248,23 +298,39 @@ body {
 }
 .footer a { color: var(--accent); }
 </style>
+</head>
+<body>
 
 <div class="site-header">
   <div class="header-text">
-    <h1>MSB Featured Events</h1>
-    <p>BYU Marriott School of Business · Live from Google Calendar</p>
+    <h1>BYU Marriott Events</h1>
+    <p>BYU Marriott School of Business · MBA &amp; more</p>
   </div>
   <div class="header-badge" id="eventCount">—</div>
 </div>
 
 <div class="filter-bar">
-  <div class="filter-bar-inner">
-    <button class="filter-btn active" data-filter="all">All Events</button>
-    <button class="filter-btn" data-filter="info">Info Sessions</button>
-    <button class="filter-btn" data-filter="panel">Panels</button>
-    <button class="filter-btn" data-filter="networking">Networking</button>
-    <button class="filter-btn" data-filter="keynote">Keynotes</button>
-    <span class="filter-count" id="filterCount"></span>
+  <!-- Row 1: Calendar source filter -->
+  <div class="filter-section">
+    <div class="filter-label">Calendar</div>
+    <div class="filter-bar-inner" id="calFilterRow">
+      <button class="filter-btn active" data-cal="all">
+        All Calendars
+      </button>
+      <!-- Populated by JS -->
+    </div>
+  </div>
+  <!-- Row 2: Event type filter -->
+  <div class="filter-section">
+    <div class="filter-label">Event type</div>
+    <div class="filter-bar-inner">
+      <button class="filter-btn active" data-filter="all">All Types</button>
+      <button class="filter-btn" data-filter="info">Info Sessions</button>
+      <button class="filter-btn" data-filter="panel">Panels</button>
+      <button class="filter-btn" data-filter="networking">Networking</button>
+      <button class="filter-btn" data-filter="keynote">Keynotes</button>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
   </div>
 </div>
 
@@ -274,6 +340,7 @@ body {
     <div class="spinner"></div>
     <h3>Loading events…</h3>
     <p>Fetching from Google Calendar</p>
+    <div class="load-progress" id="loadProgress"></div>
   </div>
 </div>
 <div class="footer">
@@ -281,14 +348,49 @@ body {
 </div>
 
 <script>
-const CAL_ID = 'events@marriottschool.net';
+// ── Calendar registry ─────────────────────────────────────────────────────────
+// All calendars use {slug}@marriottschool.net
+const CALENDARS = [
+  // MBA first — highest priority
+  { id: 'mba@marriottschool.net',      label: 'MBA',            group: 'programs',  color: '#0055a5', priority: true },
+  // BYU Marriott
+  { id: 'events@marriottschool.net',   label: 'MSB Featured',   group: 'byu',       color: '#002e5d' },
+  { id: 'calendar@marriottschool.net', label: 'BYU Marriott',   group: 'byu',       color: '#1a4f8a' },
+  { id: 'soa@marriottschool.net',      label: 'Accountancy',    group: 'byu',       color: '#1a4f8a' },
+  // Other programs (fetched but not individually highlighted)
+  { id: 'emba@marriottschool.net',     label: 'EMBA',           group: 'programs',  color: '#2e75b6' },
+  { id: 'empa@marriottschool.net',     label: 'EMPA',           group: 'programs',  color: '#2e75b6' },
+  { id: 'macc@marriottschool.net',     label: 'MAcc',           group: 'programs',  color: '#2e75b6' },
+  { id: 'mism@marriottschool.net',     label: 'MISM',           group: 'programs',  color: '#2e75b6' },
+  { id: 'mpa@marriottschool.net',      label: 'MPA',            group: 'programs',  color: '#2e75b6' },
+  // Centers & Institutes
+  { id: 'cet@marriottschool.net',      label: 'Entrepreneurship', group: 'centers', color: '#70ad47' },
+  { id: 'bcc@marriottschool.net',      label: 'Career Center',  group: 'centers',   color: '#ed7d31' },
+  { id: 'gmc@marriottschool.net',      label: 'Global Business',group: 'centers',   color: '#70ad47' },
+  { id: 'esr@marriottschool.net',      label: 'Ballard Center', group: 'centers',   color: '#70ad47' },
+];
+
+const GROUPS = [
+  { key: 'mba@marriottschool.net', label: '★ MBA',        singleCal: true },
+  { key: 'all',                    label: 'All Calendars' },
+  { key: 'byu',                    label: 'BYU Marriott'  },
+  { key: 'programs',               label: 'All Programs'  },
+  { key: 'centers',                label: 'Centers'       },
+];
+
 const API_KEY = 'AIzaSyBn-Dpf-QwoRD0sk3s8lM-L5pTtyNxGenY';
 
+// Build a lookup map by id
+const CAL_META = {};
+CALENDARS.forEach(c => { CAL_META[c.id] = c; });
+
 let currentFilter = 'all';
-let allEvents = [];
+let currentCal    = 'mba@marriottschool.net';  // default to MBA view
+let allEvents     = [];
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
 
 function fmt12(dtStr) {
-  // dtStr: "2026-10-22T17:00:00" or "2026-10-22T17:00:00-06:00"
   if (!dtStr) return '';
   const d = new Date(dtStr);
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Denver' });
@@ -298,33 +400,29 @@ function fmtDate(dtStr) {
   const d = new Date(dtStr);
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Denver' });
 }
-function fmtShort(dtStr) {
-  if (!dtStr) return '';
-  const d = new Date(dtStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Denver' });
-}
 function isAllDay(ev) { return !!(ev.start && ev.start.date && !ev.start.dateTime); }
 function startStr(ev) { return ev.start.dateTime || (ev.start.date + 'T00:00:00'); }
+function startMs(ev)  { return new Date(startStr(ev)).getTime(); }
 
 function categorize(title) {
-  const t = title.toLowerCase();
+  const t = (title || '').toLowerCase();
   const tags = [];
-  if (t.includes('info session')) tags.push({ label: 'Info Session', filter: 'info' });
-  if (t.includes('panel')) tags.push({ label: 'Panel', filter: 'panel' });
-  if (t.includes('networking') || t.includes('speed networking')) tags.push({ label: 'Networking', filter: 'networking' });
-  if (t.includes('keynote') || t.includes('lecture')) tags.push({ label: 'Keynote', filter: 'keynote' });
-  if (t.includes('dinner') || t.includes('lunch')) tags.push({ label: 'Meal', filter: 'panel' });
-  if (t.includes('career fair')) tags.push({ label: 'Career Fair', filter: 'networking' });
-  if (t.includes('office hours')) tags.push({ label: 'Office Hours', filter: 'networking' });
+  if (t.includes('info session'))                                     tags.push({ label: 'Info Session',  filter: 'info' });
+  if (t.includes('panel'))                                            tags.push({ label: 'Panel',         filter: 'panel' });
+  if (t.includes('networking') || t.includes('speed networking'))     tags.push({ label: 'Networking',    filter: 'networking' });
+  if (t.includes('keynote') || t.includes('lecture'))                 tags.push({ label: 'Keynote',       filter: 'keynote' });
+  if (t.includes('dinner') || t.includes('lunch'))                    tags.push({ label: 'Meal',          filter: 'panel' });
+  if (t.includes('career fair'))                                      tags.push({ label: 'Career Fair',   filter: 'networking' });
+  if (t.includes('office hours'))                                     tags.push({ label: 'Office Hours',  filter: 'networking' });
+  if (t.includes('competition') || t.includes('challenge'))           tags.push({ label: 'Competition',   filter: 'keynote' });
+  if (t.includes('workshop') || t.includes('training'))               tags.push({ label: 'Workshop',      filter: 'info' });
   return tags;
 }
 
 function driveViewUrl(att) {
-  // attachments have fileUrl like https://drive.google.com/open?id=FILE_ID
-  // convert to /file/d/FILE_ID/view
   if (!att) return null;
   const url = att.fileUrl || '';
-  if (url.includes('/file/d/')) return url; // already in view format
+  if (url.includes('/file/d/')) return url;
   const match = url.match(/[?&]id=([^&]+)/);
   if (match) return `https://drive.google.com/file/d/${match[1]}/view`;
   const idField = att.fileId;
@@ -339,40 +437,138 @@ function isToday(dateStr) {
   return dateStr === today;
 }
 
-// ── Fetch from Calendar API ───────────────────────────────────────────────────
+// ── Fetch (with pagination) ───────────────────────────────────────────────────
 
-async function fetchEvents() {
-  const now = new Date().toISOString();
+async function fetchCalendar(calId) {
+  const now      = new Date().toISOString();
   const twoMonths = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
-  const calId = encodeURIComponent(CAL_ID);
-  const params = new URLSearchParams({
-    key: API_KEY,
-    timeMin: now,
-    timeMax: twoMonths,
-    maxResults: '50',
-    singleEvents: 'true',
-    orderBy: 'startTime',
-    supportsAttachments: 'true',
-    fields: 'items(id,summary,start,end,location,description,attachments)',
-  });
-  const resp = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?${params}`
+  const calIdEnc  = encodeURIComponent(calId);
+  let items       = [];
+  let pageToken   = null;
+
+  do {
+    const params = new URLSearchParams({
+      key: API_KEY,
+      timeMin: now,
+      timeMax: twoMonths,
+      maxResults: '250',        // max allowed per page
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      supportsAttachments: 'true',
+      fields: 'nextPageToken,items(id,summary,start,end,location,description,attachments)',
+    });
+    if (pageToken) params.set('pageToken', pageToken);
+
+    const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calIdEnc}/events?${params}`);
+    const data = await resp.json();
+    if (data.error) throw new Error(`[${calId}] ${data.error.message || 'API error'}`);
+
+    // Tag each event with its source calendar
+    (data.items || []).forEach(ev => { ev._calId = calId; });
+    items = items.concat(data.items || []);
+    pageToken = data.nextPageToken || null;
+  } while (pageToken);
+
+  return items;
+}
+
+async function fetchAll() {
+  const progress = document.getElementById('loadProgress');
+  let loaded = 0;
+
+  const results = await Promise.allSettled(
+    CALENDARS.map(async cal => {
+      const items = await fetchCalendar(cal.id);
+      loaded++;
+      if (progress) progress.textContent = `Loaded ${loaded} of ${CALENDARS.length} calendars…`;
+      return items;
+    })
   );
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error.message || 'API error');
-  return data.items || [];
+
+  const events = [];
+  results.forEach(r => {
+    if (r.status === 'fulfilled') events.push(...r.value);
+  });
+
+  // Deduplicate by event id (same event may appear in multiple calendars)
+  const seen = new Set();
+  const unique = events.filter(ev => {
+    if (seen.has(ev.id)) return false;
+    seen.add(ev.id);
+    return true;
+  });
+
+  // Sort by start time
+  unique.sort((a, b) => startMs(a) - startMs(b));
+  return unique;
+}
+
+// ── Calendar filter buttons ───────────────────────────────────────────────────
+
+function buildCalFilters() {
+  const row = document.getElementById('calFilterRow');
+  row.innerHTML = '';
+
+  // Group shortcut buttons
+  GROUPS.forEach(g => {
+    const btn = document.createElement('button');
+    const isMBA = g.key === 'mba@marriottschool.net';
+    btn.className = 'filter-btn' + (g.key === currentCal ? ' active' : '') + (isMBA ? ' mba-btn' : '');
+    btn.dataset.cal = g.key;
+    btn.textContent = g.label;
+    row.appendChild(btn);
+  });
+
+  // Separator
+  const sep = document.createElement('span');
+  sep.style.cssText = 'width:1px;height:16px;background:var(--border);flex-shrink:0;align-self:center';
+  row.appendChild(sep);
+
+  // Individual non-MBA calendar buttons (for drilling in)
+  CALENDARS.filter(c => c.id !== 'mba@marriottschool.net').forEach(cal => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (cal.id === currentCal ? ' active' : '');
+    btn.dataset.cal = cal.id;
+    btn.innerHTML = `<span class="dot" style="background:${cal.color}"></span>${cal.label}`;
+    row.appendChild(btn);
+  });
+
+  row.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      row.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCal = btn.dataset.cal;
+      render(allEvents, currentFilter, currentCal);
+    });
+  });
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
-function render(events, filter) {
-  const root = document.getElementById('eventsRoot');
+function render(events, typeFilter, calFilter) {
+  const root  = document.getElementById('eventsRoot');
   const state = document.getElementById('stateMsg');
   root.innerHTML = '';
   state.style.display = 'none';
 
-  if (!events.length) {
-    state.innerHTML = `<div class="icon">📅</div><h3>No upcoming events</h3><p>Check back soon for new events on the MSB calendar.</p>`;
+  // Apply calendar filter
+  const byGroup = {
+    byu:      CALENDARS.filter(c => c.group === 'byu').map(c => c.id),
+    programs: CALENDARS.filter(c => c.group === 'programs').map(c => c.id),
+    centers:  CALENDARS.filter(c => c.group === 'centers').map(c => c.id),
+  };
+
+  const filtered = events.filter(ev => {
+    if (calFilter === 'all')      return true;
+    if (calFilter === 'byu')      return byGroup.byu.includes(ev._calId);
+    if (calFilter === 'programs') return byGroup.programs.includes(ev._calId);
+    if (calFilter === 'centers')  return byGroup.centers.includes(ev._calId);
+    // Direct calendar ID match (e.g. MBA shortcut or individual cal button)
+    return ev._calId === calFilter;
+  });
+
+  if (!filtered.length) {
+    state.innerHTML = `<div class="icon">📅</div><h3>No upcoming events</h3><p>Check back soon — or try a different calendar or filter.</p>`;
     state.style.display = 'block';
     document.getElementById('filterCount').textContent = '0 events';
     document.getElementById('eventCount').textContent = '0 Events';
@@ -381,10 +577,10 @@ function render(events, filter) {
 
   // Group by date
   const groups = {};
-  events.forEach(ev => {
-    const dateKey = fmtDate(startStr(ev));
-    if (!groups[dateKey]) groups[dateKey] = [];
-    groups[dateKey].push(ev);
+  filtered.forEach(ev => {
+    const key = fmtDate(startStr(ev));
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(ev);
   });
 
   let shown = 0;
@@ -393,8 +589,8 @@ function render(events, filter) {
     groupEl.className = 'date-group';
 
     const dateMatch = date.match(/^(\w+),\s+(\w+ \d+)/);
-    const weekday = dateMatch ? dateMatch[1] : date;
-    const datePart = dateMatch ? dateMatch[2] : '';
+    const weekday   = dateMatch ? dateMatch[1] : date;
+    const datePart  = dateMatch ? dateMatch[2] : '';
     const todayFlag = isToday(date);
 
     groupEl.innerHTML = `<div class="date-header">
@@ -405,16 +601,20 @@ function render(events, filter) {
 
     let groupHasVisible = false;
     evs.forEach(ev => {
-      const tags = categorize(ev.summary || '');
-      const matches = filter === 'all' || tags.some(t => t.filter === filter);
+      const tags    = categorize(ev.summary || '');
+      const matches = typeFilter === 'all' || tags.some(t => t.filter === typeFilter);
 
       const card = document.createElement('div');
       card.className = 'event-card' + (matches ? '' : ' hidden');
       if (matches) { shown++; groupHasVisible = true; }
 
-      const allDay = isAllDay(ev);
+      // Calendar color accent
+      const calMeta = CAL_META[ev._calId];
+      if (calMeta) card.style.setProperty('--cal-color', calMeta.color);
+
+      const allDay  = isAllDay(ev);
       const timeHtml = allDay
-        ? `<div class="event-time all-day">All Day</div>`
+        ? `<div class="event-time">All Day</div>`
         : `<div class="event-time">${fmt12(ev.start.dateTime)}<span class="end-time">${fmt12(ev.end.dateTime)}</span></div>`;
 
       const locHtml = ev.location ? `<div class="event-location">
@@ -422,10 +622,10 @@ function render(events, filter) {
         ${ev.location}
       </div>` : '';
 
-      const tagsHtml = tags.map(t => `<span class="tag">${t.label}</span>`).join('');
+      const tagsHtml      = tags.map(t => `<span class="tag">${t.label}</span>`).join('');
+      const calSourceHtml = calMeta ? `<span class="cal-source-tag" style="background:${calMeta.color}">${calMeta.label}</span>` : '';
 
-      // First attachment = flyer
-      const att = ev.attachments && ev.attachments[0];
+      const att      = ev.attachments && ev.attachments[0];
       const flyerUrl = att ? driveViewUrl(att) : null;
       const flyerHtml = flyerUrl ? `<a class="flyer-btn" href="${flyerUrl}" target="_blank" rel="noopener">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v6M3.5 4.5L6 7l2.5-2.5M1.5 9h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -437,7 +637,7 @@ function render(events, filter) {
         <div class="event-body">
           <div class="event-title">${ev.summary || 'Untitled'}</div>
           ${locHtml}
-          ${(tagsHtml || flyerHtml) ? `<div class="event-tags">${tagsHtml}${flyerHtml}</div>` : ''}
+          <div class="event-tags">${calSourceHtml}${tagsHtml}${flyerHtml}</div>
         </div>`;
       groupEl.appendChild(card);
     });
@@ -445,36 +645,46 @@ function render(events, filter) {
     if (groupHasVisible) root.appendChild(groupEl);
   });
 
-  const noResults = document.getElementById('noResults');
-  if (noResults) noResults.classList.toggle('visible', shown === 0);
+  const totalShown   = filtered.filter((_, i) => {
+    // recount visible after type filter
+    const tags = categorize(filtered[i]?.summary || '');
+    return typeFilter === 'all' || tags.some(t => t.filter === typeFilter);
+  }).length;
 
   document.getElementById('filterCount').textContent =
-    shown === events.length ? `${shown} events` : `${shown} of ${events.length} events`;
-  document.getElementById('eventCount').textContent = `${events.length} Events`;
+    shown === filtered.length
+      ? `${shown} events`
+      : `${shown} of ${filtered.length} events`;
+  document.getElementById('eventCount').textContent = `${allEvents.length} Events`;
 }
 
-// ── Filter buttons ────────────────────────────────────────────────────────────
-document.querySelectorAll('.filter-btn').forEach(btn => {
+// ── Type filter buttons ───────────────────────────────────────────────────────
+document.querySelectorAll('[data-filter]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
-    render(allEvents, currentFilter);
+    render(allEvents, currentFilter, currentCal);
   });
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+buildCalFilters();
+
 (async () => {
   try {
-    allEvents = await fetchEvents();
+    allEvents = await fetchAll();
     document.getElementById('refreshDate').textContent = new Date().toLocaleDateString('en-US', {
       month: 'long', day: 'numeric', year: 'numeric'
     });
-    render(allEvents, currentFilter);
+    render(allEvents, currentFilter, currentCal);
   } catch (err) {
-    document.getElementById('stateMsg').innerHTML = `<div class="icon">⚠️</div><h3>Couldn't load events</h3><p>${err.message || 'Unknown error.'}</p>`;
+    document.getElementById('stateMsg').innerHTML =
+      `<div class="icon">⚠️</div><h3>Couldn't load events</h3><p>${err.message || 'Unknown error.'}</p>`;
     document.getElementById('stateMsg').style.display = 'block';
     document.getElementById('eventCount').textContent = 'Error';
   }
 })();
 </script>
+</body>
+</html>
