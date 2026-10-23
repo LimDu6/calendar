@@ -285,6 +285,34 @@ body {
 }
 .flyer-btn:hover { opacity: 0.85; }
 
+.add-cal-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.add-cal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.add-cal-btn.gcal {
+  background: #4285f4;
+  color: #fff;
+}
+.add-cal-btn.outlook {
+  background: #0078d4;
+  color: #fff;
+}
+.add-cal-btn:hover { opacity: 0.82; }
+
 /* ── States ── */
 .state-msg {
   text-align: center;
@@ -612,6 +640,58 @@ function onSubCalClick(calId) {
   render(allEvents, currentFilter, currentCal, currentSubCal);
 }
 
+// ── Add to Calendar helpers ───────────────────────────────────────────────────
+
+function toISOCompact(dtStr, allDay) {
+  if (allDay) return dtStr.replace(/-/g, '');           // YYYYMMDD
+  return new Date(dtStr).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); // YYYYMMDDTHHmmssZ
+}
+
+function buildAddToCalLinks(ev) {
+  const title   = encodeURIComponent(ev.summary || 'BYU Marriott Event');
+  const loc     = encodeURIComponent(ev.location || '');
+  const allDay  = isAllDay(ev);
+
+  let startDt, endDt;
+  if (allDay) {
+    startDt = toISOCompact(ev.start.date, true);
+    // Google needs end date to be exclusive (next day) for all-day events
+    const endDate = ev.end?.date || ev.start.date;
+    endDt = toISOCompact(endDate, true);
+  } else {
+    startDt = toISOCompact(ev.start.dateTime, false);
+    endDt   = toISOCompact(ev.end?.dateTime || ev.start.dateTime, false);
+  }
+
+  // Google Calendar
+  const gcUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+    `&text=${title}` +
+    `&dates=${startDt}/${endDt}` +
+    (loc ? `&location=${loc}` : '');
+
+  // Outlook Web (works for both Microsoft 365 and personal outlook.com)
+  const outlookStartIso = allDay ? ev.start.date : new Date(ev.start.dateTime).toISOString();
+  const outlookEndIso   = allDay
+    ? (ev.end?.date || ev.start.date)
+    : new Date(ev.end?.dateTime || ev.start.dateTime).toISOString();
+  const outlookUrl = `https://outlook.live.com/calendar/0/action/compose?rru=addevent` +
+    `&subject=${title}` +
+    `&startdt=${encodeURIComponent(outlookStartIso)}` +
+    `&enddt=${encodeURIComponent(outlookEndIso)}` +
+    (loc ? `&location=${loc}` : '');
+
+  return `<span class="add-cal-group">
+    <a class="add-cal-btn gcal" href="${gcUrl}" target="_blank" rel="noopener" title="Add to Google Calendar">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+      Google
+    </a>
+    <a class="add-cal-btn outlook" href="${outlookUrl}" target="_blank" rel="noopener" title="Add to Outlook">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Outlook
+    </a>
+  </span>`;
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function render(events, typeFilter, calFilter, subCal) {
@@ -691,12 +771,14 @@ function render(events, typeFilter, calFilter, subCal) {
             View Flyer
            </a>` : '';
 
+      const addCalHtml = buildAddToCalLinks(ev);
+
       card.innerHTML = `
         ${timeHtml}
         <div class="event-body">
           <div class="event-title">${ev.summary || 'Untitled'}</div>
           ${locHtml}
-          <div class="event-tags">${sourceHtml}${tagsHtml}${flyerHtml}</div>
+          <div class="event-tags">${sourceHtml}${tagsHtml}${flyerHtml}${addCalHtml}</div>
         </div>`;
       groupEl.appendChild(card);
     });
