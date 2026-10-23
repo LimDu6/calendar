@@ -355,7 +355,7 @@ const CALENDARS = [
   { id: 'mba@marriottschool.net',      label: 'MBA',            group: 'programs',  color: '#0055a5', priority: true },
   // BYU Marriott
   { id: 'events@marriottschool.net',   label: 'MSB Featured',   group: 'byu',       color: '#002e5d' },
-  { id: 'calendar@marriottschool.net', label: 'BYU Marriott',   group: 'byu',       color: '#1a4f8a' },
+  // calendar@marriottschool.net appears empty — omitted
   { id: 'soa@marriottschool.net',      label: 'Accountancy',    group: 'byu',       color: '#1a4f8a' },
   // Other programs (fetched but not individually highlighted)
   { id: 'emba@marriottschool.net',     label: 'EMBA',           group: 'programs',  color: '#2e75b6' },
@@ -371,11 +371,11 @@ const CALENDARS = [
 ];
 
 const GROUPS = [
-  { key: 'mba@marriottschool.net', label: '★ MBA',        singleCal: true },
-  { key: 'all',                    label: 'All Calendars' },
-  { key: 'byu',                    label: 'BYU Marriott'  },
-  { key: 'programs',               label: 'All Programs'  },
-  { key: 'centers',                label: 'Centers'       },
+  { key: 'mba@marriottschool.net', label: '★ MBA',        mba: true },
+  { key: 'all',                    label: 'All'                      },
+  { key: 'byu',                    label: 'BYU Marriott'             },
+  { key: 'centers',                label: 'Centers'                  },
+  { key: 'programs',               label: 'Programs'                 },
 ];
 
 const API_KEY = 'AIzaSyBn-Dpf-QwoRD0sk3s8lM-L5pTtyNxGenY';
@@ -509,27 +509,11 @@ function buildCalFilters() {
   const row = document.getElementById('calFilterRow');
   row.innerHTML = '';
 
-  // Group shortcut buttons
   GROUPS.forEach(g => {
     const btn = document.createElement('button');
-    const isMBA = g.key === 'mba@marriottschool.net';
-    btn.className = 'filter-btn' + (g.key === currentCal ? ' active' : '') + (isMBA ? ' mba-btn' : '');
+    btn.className = 'filter-btn' + (g.key === currentCal ? ' active' : '') + (g.mba ? ' mba-btn' : '');
     btn.dataset.cal = g.key;
     btn.textContent = g.label;
-    row.appendChild(btn);
-  });
-
-  // Separator
-  const sep = document.createElement('span');
-  sep.style.cssText = 'width:1px;height:16px;background:var(--border);flex-shrink:0;align-self:center';
-  row.appendChild(sep);
-
-  // Individual non-MBA calendar buttons (for drilling in)
-  CALENDARS.filter(c => c.id !== 'mba@marriottschool.net').forEach(cal => {
-    const btn = document.createElement('button');
-    btn.className = 'filter-btn' + (cal.id === currentCal ? ' active' : '');
-    btn.dataset.cal = cal.id;
-    btn.innerHTML = `<span class="dot" style="background:${cal.color}"></span>${cal.label}`;
     row.appendChild(btn);
   });
 
