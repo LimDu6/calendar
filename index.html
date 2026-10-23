@@ -1,0 +1,480 @@
+<title>MSB Featured Events</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg: #f8f7f4;
+  --surface: #ffffff;
+  --fg: #1a1a2e;
+  --fg-muted: #6b6b80;
+  --accent: #002e5d;
+  --accent-light: #e8eef5;
+  --stripe: #4a90c4;
+  --border: #e2e1de;
+  --tag-bg: #f0f4f9;
+  --today: #cc0000;
+  --shadow: 0 1px 4px rgba(0,0,0,0.07);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1320; --surface: #1c2035; --fg: #e8e8f0; --fg-muted: #8888aa;
+    --accent: #5b9bd5; --accent-light: #1a2540; --stripe: #5b9bd5;
+    --border: #2a2e45; --tag-bg: #1a2035; --today: #e05555;
+    --shadow: 0 1px 4px rgba(0,0,0,0.3); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1320; --surface: #1c2035; --fg: #e8e8f0; --fg-muted: #8888aa;
+  --accent: #5b9bd5; --accent-light: #1a2540; --stripe: #5b9bd5;
+  --border: #2a2e45; --tag-bg: #1a2035; --today: #e05555;
+  --shadow: 0 1px 4px rgba(0,0,0,0.3); color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.site-header {
+  background: var(--accent);
+  color: #fff;
+  padding: 20px max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.site-header h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(18px, 4vw, 24px);
+  margin: 0 0 2px;
+  line-height: 1.2;
+}
+.site-header p { margin: 0; font-size: 12px; opacity: 0.75; }
+.header-badge {
+  background: rgba(255,255,255,0.18);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+
+/* ── Filter bar ── */
+.filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+}
+.filter-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  scrollbar-width: none;
+}
+.filter-bar-inner::-webkit-scrollbar { display: none; }
+.filter-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.filter-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Events ── */
+.events-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: 48px;
+}
+.date-group { margin-bottom: 28px; }
+.date-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 12px;
+}
+.weekday {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.date-full { font-size: 13px; color: var(--fg-muted); }
+.today-pill {
+  background: var(--today);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.event-card {
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.event-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.12); border-color: var(--stripe); }
+.event-card.hidden { display: none; }
+.event-time {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--stripe);
+  text-align: right;
+  padding-top: 2px;
+  line-height: 1.4;
+  min-width: 0;
+}
+.event-time .end-time { font-weight: 400; color: var(--fg-muted); display: block; }
+.event-body { min-width: 0; }
+.event-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0 0 4px;
+  line-height: 1.35;
+  color: var(--fg);
+}
+.event-location {
+  font-size: 12px;
+  color: var(--fg-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.event-location svg { flex-shrink: 0; opacity: 0.6; }
+.event-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; align-items: center; }
+.tag {
+  background: var(--tag-bg);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+.flyer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.flyer-btn:hover { opacity: 0.85; }
+
+/* ── Loading / error / empty states ── */
+.state-msg {
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--fg-muted);
+}
+.state-msg .icon { font-size: 36px; margin-bottom: 12px; }
+.state-msg h3 { margin: 0 0 6px; font-size: 16px; color: var(--fg); }
+.state-msg p { margin: 0; font-size: 13px; line-height: 1.6; }
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Footer ── */
+.footer {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px max(16px, env(safe-area-inset-left, 0px)) 32px;
+  font-size: 12px;
+  color: var(--fg-muted);
+  border-top: 1px solid var(--border);
+}
+.footer a { color: var(--accent); }
+</style>
+
+<div class="site-header">
+  <div class="header-text">
+    <h1>MSB Featured Events</h1>
+    <p>BYU Marriott School of Business · Live from Google Calendar</p>
+  </div>
+  <div class="header-badge" id="eventCount">—</div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-bar-inner">
+    <button class="filter-btn active" data-filter="all">All Events</button>
+    <button class="filter-btn" data-filter="info">Info Sessions</button>
+    <button class="filter-btn" data-filter="panel">Panels</button>
+    <button class="filter-btn" data-filter="networking">Networking</button>
+    <button class="filter-btn" data-filter="keynote">Keynotes</button>
+    <span class="filter-count" id="filterCount"></span>
+  </div>
+</div>
+
+<div class="events-container">
+  <div id="eventsRoot"></div>
+  <div id="stateMsg" class="state-msg">
+    <div class="spinner"></div>
+    <h3>Loading events…</h3>
+    <p>Fetching from Google Calendar</p>
+  </div>
+</div>
+<div class="footer">
+  Events from <a href="https://marriott.byu.edu/calendar/" target="_blank" rel="noopener">marriott.byu.edu/calendar</a> · Updated <span id="refreshDate"></span>
+</div>
+
+<script>
+const CAL_ID = 'events@marriottschool.net';
+const API_KEY = 'AIzaSyBn-Dpf-QwoRD0sk3s8lM-L5pTtyNxGenY';
+
+let currentFilter = 'all';
+let allEvents = [];
+
+function fmt12(dtStr) {
+  // dtStr: "2026-10-22T17:00:00" or "2026-10-22T17:00:00-06:00"
+  if (!dtStr) return '';
+  const d = new Date(dtStr);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Denver' });
+}
+function fmtDate(dtStr) {
+  if (!dtStr) return '';
+  const d = new Date(dtStr);
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Denver' });
+}
+function fmtShort(dtStr) {
+  if (!dtStr) return '';
+  const d = new Date(dtStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Denver' });
+}
+function isAllDay(ev) { return !!(ev.start && ev.start.date && !ev.start.dateTime); }
+function startStr(ev) { return ev.start.dateTime || (ev.start.date + 'T00:00:00'); }
+
+function categorize(title) {
+  const t = title.toLowerCase();
+  const tags = [];
+  if (t.includes('info session')) tags.push({ label: 'Info Session', filter: 'info' });
+  if (t.includes('panel')) tags.push({ label: 'Panel', filter: 'panel' });
+  if (t.includes('networking') || t.includes('speed networking')) tags.push({ label: 'Networking', filter: 'networking' });
+  if (t.includes('keynote') || t.includes('lecture')) tags.push({ label: 'Keynote', filter: 'keynote' });
+  if (t.includes('dinner') || t.includes('lunch')) tags.push({ label: 'Meal', filter: 'panel' });
+  if (t.includes('career fair')) tags.push({ label: 'Career Fair', filter: 'networking' });
+  if (t.includes('office hours')) tags.push({ label: 'Office Hours', filter: 'networking' });
+  return tags;
+}
+
+function driveViewUrl(att) {
+  // attachments have fileUrl like https://drive.google.com/open?id=FILE_ID
+  // convert to /file/d/FILE_ID/view
+  if (!att) return null;
+  const url = att.fileUrl || '';
+  if (url.includes('/file/d/')) return url; // already in view format
+  const match = url.match(/[?&]id=([^&]+)/);
+  if (match) return `https://drive.google.com/file/d/${match[1]}/view`;
+  const idField = att.fileId;
+  if (idField) return `https://drive.google.com/file/d/${idField}/view`;
+  return url || null;
+}
+
+function isToday(dateStr) {
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Denver'
+  });
+  return dateStr === today;
+}
+
+// ── Fetch from Calendar API ───────────────────────────────────────────────────
+
+async function fetchEvents() {
+  const now = new Date().toISOString();
+  const twoMonths = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+  const calId = encodeURIComponent(CAL_ID);
+  const params = new URLSearchParams({
+    key: API_KEY,
+    timeMin: now,
+    timeMax: twoMonths,
+    maxResults: '50',
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    supportsAttachments: 'true',
+    fields: 'items(id,summary,start,end,location,description,attachments)',
+  });
+  const resp = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${calId}/events?${params}`
+  );
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message || 'API error');
+  return data.items || [];
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function render(events, filter) {
+  const root = document.getElementById('eventsRoot');
+  const state = document.getElementById('stateMsg');
+  root.innerHTML = '';
+  state.style.display = 'none';
+
+  if (!events.length) {
+    state.innerHTML = `<div class="icon">📅</div><h3>No upcoming events</h3><p>Check back soon for new events on the MSB calendar.</p>`;
+    state.style.display = 'block';
+    document.getElementById('filterCount').textContent = '0 events';
+    document.getElementById('eventCount').textContent = '0 Events';
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  events.forEach(ev => {
+    const dateKey = fmtDate(startStr(ev));
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(ev);
+  });
+
+  let shown = 0;
+  Object.entries(groups).forEach(([date, evs]) => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'date-group';
+
+    const dateMatch = date.match(/^(\w+),\s+(\w+ \d+)/);
+    const weekday = dateMatch ? dateMatch[1] : date;
+    const datePart = dateMatch ? dateMatch[2] : '';
+    const todayFlag = isToday(date);
+
+    groupEl.innerHTML = `<div class="date-header">
+      <span class="weekday">${weekday}</span>
+      <span class="date-full">${datePart}</span>
+      ${todayFlag ? '<span class="today-pill">Today</span>' : ''}
+    </div>`;
+
+    let groupHasVisible = false;
+    evs.forEach(ev => {
+      const tags = categorize(ev.summary || '');
+      const matches = filter === 'all' || tags.some(t => t.filter === filter);
+
+      const card = document.createElement('div');
+      card.className = 'event-card' + (matches ? '' : ' hidden');
+      if (matches) { shown++; groupHasVisible = true; }
+
+      const allDay = isAllDay(ev);
+      const timeHtml = allDay
+        ? `<div class="event-time all-day">All Day</div>`
+        : `<div class="event-time">${fmt12(ev.start.dateTime)}<span class="end-time">${fmt12(ev.end.dateTime)}</span></div>`;
+
+      const locHtml = ev.location ? `<div class="event-location">
+        <svg width="11" height="14" viewBox="0 0 11 14" fill="none"><path d="M5.5 0C2.46 0 0 2.46 0 5.5c0 3.85 5.5 8.5 5.5 8.5S11 9.35 11 5.5C11 2.46 8.54 0 5.5 0zm0 7.5a2 2 0 110-4 2 2 0 010 4z" fill="currentColor"/></svg>
+        ${ev.location}
+      </div>` : '';
+
+      const tagsHtml = tags.map(t => `<span class="tag">${t.label}</span>`).join('');
+
+      // First attachment = flyer
+      const att = ev.attachments && ev.attachments[0];
+      const flyerUrl = att ? driveViewUrl(att) : null;
+      const flyerHtml = flyerUrl ? `<a class="flyer-btn" href="${flyerUrl}" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v6M3.5 4.5L6 7l2.5-2.5M1.5 9h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        View Flyer
+      </a>` : '';
+
+      card.innerHTML = `
+        ${timeHtml}
+        <div class="event-body">
+          <div class="event-title">${ev.summary || 'Untitled'}</div>
+          ${locHtml}
+          ${(tagsHtml || flyerHtml) ? `<div class="event-tags">${tagsHtml}${flyerHtml}</div>` : ''}
+        </div>`;
+      groupEl.appendChild(card);
+    });
+
+    if (groupHasVisible) root.appendChild(groupEl);
+  });
+
+  const noResults = document.getElementById('noResults');
+  if (noResults) noResults.classList.toggle('visible', shown === 0);
+
+  document.getElementById('filterCount').textContent =
+    shown === events.length ? `${shown} events` : `${shown} of ${events.length} events`;
+  document.getElementById('eventCount').textContent = `${events.length} Events`;
+}
+
+// ── Filter buttons ────────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    render(allEvents, currentFilter);
+  });
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    allEvents = await fetchEvents();
+    document.getElementById('refreshDate').textContent = new Date().toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric'
+    });
+    render(allEvents, currentFilter);
+  } catch (err) {
+    document.getElementById('stateMsg').innerHTML = `<div class="icon">⚠️</div><h3>Couldn't load events</h3><p>${err.message || 'Unknown error.'}</p>`;
+    document.getElementById('stateMsg').style.display = 'block';
+    document.getElementById('eventCount').textContent = 'Error';
+  }
+})();
+</script>
